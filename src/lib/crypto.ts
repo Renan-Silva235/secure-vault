@@ -1,14 +1,12 @@
 // Simple AES-GCM encryption using Web Crypto API
-// All data is encrypted with the master password before storing in localStorage
 
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const enc = new TextEncoder();
-  const rawKey = enc.encode(password) as unknown as ArrayBuffer;
   const keyMaterial = await crypto.subtle.importKey(
-    'raw', rawKey, 'PBKDF2', false, ['deriveKey']
+    'raw', enc.encode(password).buffer, 'PBKDF2', false, ['deriveKey']
   );
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt.buffer, iterations: 100000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -22,7 +20,7 @@ export async function encrypt(data: string, password: string): Promise<string> {
   const key = await deriveKey(password, salt);
   const enc = new TextEncoder();
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv }, key, enc.encode(data)
+    { name: 'AES-GCM', iv: iv.buffer }, key, enc.encode(data).buffer
   );
   const combined = new Uint8Array(salt.length + iv.length + new Uint8Array(encrypted).length);
   combined.set(salt, 0);
@@ -38,7 +36,7 @@ export async function decrypt(encoded: string, password: string): Promise<string
   const encrypted = data.slice(28);
   const key = await deriveKey(password, salt);
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv }, key, encrypted
+    { name: 'AES-GCM', iv: iv.buffer }, key, encrypted.buffer
   );
   return new TextDecoder().decode(decrypted);
 }
