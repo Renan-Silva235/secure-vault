@@ -1,8 +1,17 @@
-import { useState } from 'react';
-import { Shield, LogOut, Plus, Eye, EyeOff, Copy, Pencil, Search } from 'lucide-react';
-import type { ServiceEntry } from '@/lib/store';
-import { getServiceColor, getServiceInitial } from '@/lib/icons';
-import { toast } from 'sonner';
+import { useState } from "react";
+import {
+  Shield,
+  LogOut,
+  Plus,
+  Eye,
+  EyeOff,
+  Copy,
+  Pencil,
+  Search,
+} from "lucide-react";
+import type { ServiceEntry } from "@/lib/store";
+import { getServiceColor, getServiceInitial } from "@/lib/icons";
+import { toast } from "sonner";
 
 interface PasswordListProps {
   services: ServiceEntry[];
@@ -11,12 +20,19 @@ interface PasswordListProps {
   onLogout: () => void;
 }
 
-const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) => {
-  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState('');
+const PasswordList = ({
+  services,
+  onAdd,
+  onEdit,
+  onLogout,
+}: PasswordListProps) => {
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(
+    new Set(),
+  );
+  const [search, setSearch] = useState("");
 
   const togglePassword = (id: string) => {
-    setVisiblePasswords(prev => {
+    setVisiblePasswords((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -24,14 +40,51 @@ const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) 
     });
   };
 
-  const copyPassword = (pw: string) => {
-    navigator.clipboard.writeText(pw);
-    toast.success('Senha copiada!');
+  const copyWithExecCommand = (text: string): boolean => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+
+    return copied;
   };
 
-  const filtered = services.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.username.toLowerCase().includes(search.toLowerCase())
+  const copyPassword = async (pw: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(pw);
+        toast.success("Senha copiada!");
+        return;
+      }
+    } catch {
+      // Fallback below for mobile/insecure contexts.
+    }
+
+    if (copyWithExecCommand(pw)) {
+      toast.success("Senha copiada!");
+      return;
+    }
+
+    toast.error("Nao foi possivel copiar automaticamente");
+  };
+
+  const filtered = services.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.username.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -43,9 +96,14 @@ const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) 
             <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
               <Shield className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-lg font-bold text-foreground">Cofre de Senhas</h1>
+            <h1 className="text-lg font-bold text-foreground">
+              Cofre de Senhas
+            </h1>
           </div>
-          <button onClick={onLogout} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={onLogout}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
             <LogOut className="w-5 h-5" />
           </button>
         </div>
@@ -56,14 +114,15 @@ const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) 
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar serviço..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
           />
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {services.length} {services.length === 1 ? 'serviço salvo' : 'serviços salvos'}
+          {services.length}{" "}
+          {services.length === 1 ? "serviço salvo" : "serviços salvos"}
         </p>
       </div>
 
@@ -74,16 +133,22 @@ const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) 
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
               <Shield className="w-8 h-8 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">Nenhuma senha salva</p>
-            <p className="text-xs text-muted-foreground mt-1">Toque no + para adicionar</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Nenhuma senha salva
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Toque no + para adicionar
+            </p>
           </div>
         )}
 
         {filtered.length === 0 && services.length > 0 && (
-          <p className="text-center text-sm text-muted-foreground py-10">Nenhum resultado encontrado</p>
+          <p className="text-center text-sm text-muted-foreground py-10">
+            Nenhum resultado encontrado
+          </p>
         )}
 
-        {filtered.map(service => (
+        {filtered.map((service) => (
           <div
             key={service.id}
             className="bg-card border border-border rounded-2xl p-4 transition-transform active:scale-[0.98]"
@@ -92,18 +157,27 @@ const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) 
               {/* Icon */}
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ backgroundColor: getServiceColor(service.name) + '22', color: getServiceColor(service.name) }}
+                style={{
+                  backgroundColor: getServiceColor(service.name) + "22",
+                  color: getServiceColor(service.name),
+                }}
               >
                 {getServiceInitial(service.name)}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{service.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{service.username}</p>
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {service.name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {service.username}
+                </p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-muted-foreground font-mono password-dots">
-                    {visiblePasswords.has(service.id) ? service.password : '••••••••'}
+                    {visiblePasswords.has(service.id)
+                      ? service.password
+                      : "••••••••"}
                   </span>
                 </div>
               </div>
@@ -114,7 +188,11 @@ const PasswordList = ({ services, onAdd, onEdit, onLogout }: PasswordListProps) 
                   onClick={() => togglePassword(service.id)}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors"
                 >
-                  {visiblePasswords.has(service.id) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {visiblePasswords.has(service.id) ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
                 <button
                   onClick={() => copyPassword(service.password)}
